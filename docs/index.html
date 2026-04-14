@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="light dark" />
+    <title>Convert Colors from YAML for use in Power BI</title>
+    <link
+      href="data:image/x-icon;base64,R0lGODlhAQABAIAAAP///wAAACH5BAEAAAAALAAAAAABAAEAAAICRAEAOw=="
+      rel="icon"
+      type="image/x-icon"
+    />
+    <!-- https://unpkg.com/@picocss/pico@2.1.1/css/pico.classless.min.css -->
+    <link rel="stylesheet" href="./lib/pico.classless.min.css" />
+    <!-- https://unpkg.com/prismjs@1.30.0/themes/prism.min.css -->
+    <link rel="stylesheet" href="./lib/prism.min.css" />
+    <!-- https://unpkg.com/prismjs@1.30.0/plugins/line-numbers/prism-line-numbers.min.css -->
+    <link rel="stylesheet" href="./lib/prism-line-numbers.min.css" />
+    <!-- https://unpkg.com/prismjs@1.30.0/plugins/toolbar/prism-toolbar.min.css -->
+    <link rel="stylesheet" href="./lib/prism-toolbar.min.css" />
+    <script>
+      (function () {
+        const lightCSS = ["./lib/prism-solarizedlight.min.css"];
+        const darkCSS = ["https://dev.prismjs.com/themes/prism-tomorrow.css"];
+        function updateTheme(e) {
+          document
+            .querySelectorAll('link[data-theme="dynamic"]')
+            .forEach((el) => el.remove());
+          const themes = e.matches ? darkCSS : lightCSS;
+          themes.forEach((href) => {
+            const link = document.createElement("link");
+            link.rel = "stylesheet";
+            link.href = href;
+            link.dataset.theme = "dynamic";
+            document.head.appendChild(link);
+          });
+        }
+        const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
+        updateTheme(mediaQuery);
+        mediaQuery.addEventListener("change", updateTheme);
+      })();
+    </script>
+    <style>
+      [data-theme="light"],
+      :root:not([data-theme="dark"]) {
+        --pico-code-color: #4d535e;
+      }
+      @media (prefers-color-scheme: dark) {
+        :root:not([data-theme]) {
+          --pico-code-color: #a0aac1;
+        }
+      }
+      :root {
+        --gap: 0.25rem;
+      }
+      main,
+      aside,
+      footer {
+        display: flex;
+        flex-direction: column;
+        gap: var(--gap);
+        min-height: 80vh;
+      }
+      body > footer,
+      body > header,
+      body > main {
+        padding: var(--gap);
+      }
+      main > *,
+      aside > * {
+        flex: 1;
+        min-width: 0;
+      }
+      section {
+        display: flex;
+        flex-direction: column;
+        margin-bottom: 0;
+        min-width: 0;
+      }
+      [editor],
+      pre {
+        border: var(--pico-border-width) solid var(--pico-primary-border);
+        border-radius: 0;
+      }
+      pre[class*="language-"],
+      code {
+        border-radius: 0;
+      }
+      @media (min-width: 992px) {
+        main {
+          flex-direction: row;
+        }
+      }
+      code[class*="language-"],
+      pre[class*="language-"] {
+        margin: 0;
+        padding: 0;
+        white-space: pre-wrap;
+        word-break: break-word;
+        font-size: 16px;
+        text-shadow: none;
+      }
+      [editor] {
+        flex: 1;
+        width: 100%;
+        min-height: 60vh;
+        display: block;
+        margin: 0;
+      }
+      .language-css .token.string,
+      .style .token.string,
+      .token.entity,
+      .token.operator,
+      .token.url {
+        background: 0;
+      }
+      .monaco-editor .hover-row.status-bar [role="button"] {
+        all: unset;
+        cursor: pointer;
+        color: var(--vscode-textLink-foreground, #3794ff);
+        text-decoration: none;
+        font-size: inherit;
+        padding: 0;
+        margin: 0;
+        display: inline-block;
+      }
+      .monaco-editor .hover-row.status-bar [role="button"]:hover {
+        text-decoration: underline;
+        background: transparent;
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <h1>Convert Colors from YAML for use in Power BI</h1>
+      <details>
+        <summary>Instructions</summary>
+        <p>
+          Edit colors in the YAML Editor, and they will be parsed and output
+          into:
+        </p>
+        <ul>
+          <li>
+            Table DAX: For creating a new a table, or editing its definition
+          </li>
+          <li>TDML DAX: For creating or editing measure-definitions</li>
+          <li>JSON: For usage elsewhere</li>
+        </ul>
+        <p>
+          Every <code>Background</code>-color is adapted to
+          <a
+            href="https://www.w3.org/WAI/WCAG21/Understanding/contrast-enhanced.html"
+            target="_blank"
+            >WCAG 2.1 AAA-level</a
+          >, 7:1 contrast to black text. Output is set to 6-digit hexadecimal
+          color-codes, which are most easily applied in Power BI.
+          <code>AltBackground</code> suggests an alternative compatible with the
+          <code>AltForeground</code>. Click the colored square in the YAML
+          Editor to change colors. All changes are persisted in your browser's
+          local storage, so they will be available when you return to the page.
+        </p>
+      </details>
+    </header>
+    <main>
+      <section>
+        <strong>YAML Editor</strong>
+        <pre editor>
+Sample:
+  Students: "#FFEBC0"
+  Employees: "#80C6FF"
+  Externals: "#FABBC3"
+  Faculties: "#498205"
+  Divisions: "#005E50"
+  Others: "#C3F8F9"
+
+Tests:
+  cyan: "#00ffFF"
+  Teal: "hsl(184 100% 60%)"
+  IndianRed: IndianRed
+  paleTurquoise: #AFEEEE
+  LightPink: "rgb(255, 182, 193)"
+  Bisque: "#FFE4C4BF"
+  LightSlateGray: 778899
+  blank: ""
+        </pre>
+      </section>
+      <aside>
+        <section>
+          <strong>Table DAX</strong>
+          <pre
+            id="table-dax"
+            class="line-numbers"
+          ><code class="language-dax"></code></pre>
+        </section>
+        <section>
+          <strong>TDML DAX</strong>
+          <pre
+            id="measure-dax"
+            class="line-numbers"
+          ><code class="language-dax"></code></pre>
+        </section>
+      </aside>
+    </main>
+    <footer>
+      <section>
+        <strong>JSON</strong>
+        <pre
+          id="json"
+          class="line-numbers"
+        ><code class="language-json"></code></pre>
+      </section>
+    </footer>
+    <!-- https://unpkg.com/chroma-js@3.2.0/dist/chroma.min.cjs -->
+    <script src="./lib/chroma.min.cjs"></script>
+    <!-- https://unpkg.com/js-yaml@4.1.1/dist/js-yaml.min.js -->
+    <script src="./lib/js-yaml.min.js"></script>
+    <!-- https://cdnjs.cloudflare.com/ajax/libs/prism/1.30.0/prism.min.js -->
+    <script src="./lib/prism.min.js"></script>
+    <!-- https://unpkg.com/prismjs@1.30.0/plugins/line-numbers/prism-line-numbers.min.js -->
+    <script src="./lib/prism-line-numbers.min.js"></script>
+    <!-- https://unpkg.com/prismjs@1.30.0/components/prism-dax.min.js -->
+    <script src="./lib/prism-dax.min.js"></script>
+    <!-- https://unpkg.com/prismjs@1.30.0/components/prism-json.min.js -->
+    <script src="./lib/prism-json.min.js"></script>
+    <!-- https://unpkg.com/prismjs@1.30.0/plugins/toolbar/prism-toolbar.min.js -->
+    <script src="./lib/prism-toolbar.min.js"></script>
+    <!-- https://unpkg.com/prismjs@1.30.0/plugins/copy-to-clipboard/prism-copy-to-clipboard.min.js -->
+    <script src="./lib/prism-copy-to-clipboard.min.js"></script>
+    <!-- https://www.npmjs.com/package/monaco-yaml-prebuilt/v/1.0.2 -->
+    <script src="../node_modules/monaco-yaml-prebuilt/dist/monaco-editor.js"></script>
+    <script type="module">
+      import {
+        registerYamlColorProvider,
+        createEditor,
+      } from "./lib/monaco.mjs";
+      import * as lib from "../index.js";
+
+      monacoYaml.configureMonacoYaml(monaco, {
+        enableSchemaRequest: true,
+        hover: true,
+        completion: true,
+        validate: true,
+        format: true,
+        schemas: [
+          {
+            fileMatch: ["groups.yaml"],
+            uri: "file:///groups.yaml",
+            schema: {
+              type: "object",
+              patternProperties: {
+                ".*": {
+                  type: "object",
+                  additionalProperties: {
+                    type: "string",
+                    pattern: "^#([0-9A-Fa-f]{3}|[0-9A-Fa-f]{6})$",
+                    description: 'Hex color, e.g. "#FFEBC0"',
+                  },
+                },
+              },
+              additionalProperties: { type: "object" },
+            },
+          },
+        ],
+      });
+
+      registerYamlColorProvider();
+
+      const STORAGE_KEY = "monaco-yaml-content";
+      const container = document.querySelector("pre[editor]");
+      const initialValue = container.textContent.trim();
+      container.innerHTML = "";
+
+      const editor = createEditor(container);
+
+      function handleContentChange() {
+        const raw = editor.getValue();
+        let yamlContent;
+        try {
+          yamlContent = jsyaml.load(raw);
+          console.debug("YAML is valid, continuing ...");
+        } catch (e) {
+          console.error(`${e.name}: ${e.reason}`);
+          return;
+        }
+
+        localStorage.setItem(STORAGE_KEY, editor.getValue());
+
+        const colors = lib.expandYAMLData(yamlContent);
+
+        document.querySelector("#table-dax code").textContent =
+          lib.generateColorMapDAX(colors);
+        console.debug("Updated Table DAX");
+        document.querySelector("#measure-dax code").textContent =
+          lib.generateColorMeasuresDAX(colors);
+        console.debug("Updated Measure DAX");
+        document.querySelector("#json code").textContent = JSON.stringify(
+          colors,
+          null,
+          2
+        );
+        console.debug("Updated JSON");
+
+        lib.highlightPrismColors();
+      }
+
+      let isInitializing = true;
+
+      editor.onDidChangeModelContent(
+        lib.debounce(() => {
+          if (isInitializing) return;
+          handleContentChange();
+        }, 200)
+      );
+
+      editor.setValue(localStorage.getItem(STORAGE_KEY) ?? initialValue);
+      isInitializing = false;
+
+      handleContentChange();
+    </script>
+  </body>
+</html>
