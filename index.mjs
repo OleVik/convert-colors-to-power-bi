@@ -3,7 +3,7 @@ import { cyanBright } from "yoctocolors";
 import yaml from "./docs/lib/js-yaml.mjs";
 import chroma from "chroma-js";
 globalThis.chroma = chroma;
-const lib = await import("./index.js");
+const lib = await import("./docs/index.js");
 
 const data = `Sample:
   Students: "#FFEBC0"

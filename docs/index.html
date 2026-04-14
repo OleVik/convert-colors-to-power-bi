@@ -227,13 +227,13 @@ Tests:
     <!-- https://unpkg.com/prismjs@1.30.0/plugins/copy-to-clipboard/prism-copy-to-clipboard.min.js -->
     <script src="./lib/prism-copy-to-clipboard.min.js"></script>
     <!-- https://www.npmjs.com/package/monaco-yaml-prebuilt/v/1.0.2 -->
-    <script src="../node_modules/monaco-yaml-prebuilt/dist/monaco-editor.js"></script>
+    <script src="./lib/monaco/monaco-editor.js"></script>
     <script type="module">
       import {
         registerYamlColorProvider,
         createEditor,
       } from "./lib/monaco.mjs";
-      import * as lib from "../index.js";
+      import * as lib from "./index.js";
 
       monacoYaml.configureMonacoYaml(monaco, {
         enableSchemaRequest: true,
