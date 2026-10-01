@@ -5,6 +5,46 @@ export const defaultTextColor = "#000000";
 export const defaultAltTextColor = "#FFFFFF";
 
 /**
+ * Parses YAML top-level settings to override default contrast values.
+ * @param {Object} data - The YAML data object.
+ * @returns {Object} The parsed settings.
+ */
+export function parseYamlSettings(data = {}) {
+  const settings = {
+    textColor: defaultTextColor,
+    altTextColor: defaultAltTextColor,
+    minContrast: 4.1,
+  };
+
+  if (!data || typeof data !== "object") return settings;
+
+  const parseColor = (value, fallback) => {
+    if (typeof value !== "string" || !value.trim()) return fallback;
+    try {
+      return chroma(value).hex("rgb");
+    } catch {
+      return fallback;
+    }
+  };
+
+  settings.textColor = parseColor(data.textColor, defaultTextColor);
+  settings.altTextColor = parseColor(data.altTextColor, defaultAltTextColor);
+
+  const rawMinContrast = Number(data.minContrast);
+  if (Number.isFinite(rawMinContrast)) {
+    if (rawMinContrast <= 0) {
+      settings.minContrast = 1;
+    } else if (rawMinContrast > 21) {
+      settings.minContrast = 21;
+    } else {
+      settings.minContrast = rawMinContrast;
+    }
+  }
+
+  return settings;
+}
+
+/**
  * Debounces a function to limit how often it can be called.
  * @param {Function} fn - The function to debounce.
  * @param {number} delay - The delay in milliseconds.
@@ -58,15 +98,20 @@ export const invertColor = (hex) => {
 };
 
 /**
- * Adjusts a background color to ensure sufficient contrast with black text.
+ * Adjusts a background color to ensure sufficient contrast with the configured text color.
  * @param {string} bgColor - The background color string.
  * @param {number} minContrast - The minimum contrast ratio required.
+ * @param {string} textColor - The text color to compare against.
  * @returns {string} The adjusted color string.
  */
-export function fitToBlackText(bgColor = "", minContrast = 7) {
+export function fitToBlackText(
+  bgColor = "",
+  minContrast = 7,
+  textColor = defaultTextColor,
+) {
   if (!bgColor) return bgColor;
   let color = chroma(bgColor);
-  while (chroma.contrast(color, defaultTextColor) < minContrast) {
+  while (chroma.contrast(color, textColor) < minContrast) {
     color = color.brighten(0.5);
   }
   return color.hex("rgb");
@@ -75,28 +120,47 @@ export function fitToBlackText(bgColor = "", minContrast = 7) {
 /**
  * Gets a foreground color that meets accessibility standards for a given background.
  * @param {string} bgColor - The background color string.
- * @param {number} minContrast - The minimum contrast ratio required.
+ * @param {Object} options - Options for foreground selection.
+ * @param {string} options.textColor - The primary text color.
+ * @param {string} options.altTextColor - The alternative text color.
+ * @param {number} options.minContrast - The minimum contrast ratio required.
  * @returns {Object} An object with background and foreground color strings.
  */
-export function getAccessibleColor(bgColor = "", minContrast = 4.5) {
+export function getAccessibleColor(
+  bgColor = "",
+  options = {
+    textColor: defaultTextColor,
+    altTextColor: defaultAltTextColor,
+    minContrast: 4.5,
+  },
+) {
+  const {
+    textColor = defaultTextColor,
+    altTextColor = defaultAltTextColor,
+    minContrast = 4.5,
+  } = options;
+
   if (!bgColor)
     return {
       background: bgColor,
-      foreground: defaultTextColor,
+      foreground: textColor,
     };
+
   if (!colorRegex.test(bgColor) && chroma.valid(bgColor))
     return {
       background: chroma(bgColor).hex("rgb"),
-      foreground: defaultTextColor,
+      foreground: textColor,
     };
-  const black = defaultTextColor;
-  const white = defaultAltTextColor;
+
+  const black = textColor;
+  const white = altTextColor;
   const minContrastRatio = minContrast;
   let color = chroma(bgColor);
   const contrastWithBlack = chroma.contrast(color, black);
   const contrastWithWhite = chroma.contrast(color, white);
   const foreground = contrastWithWhite > contrastWithBlack ? white : black;
   let brightness = 0;
+
   while (
     chroma.contrast(color, foreground) < minContrastRatio &&
     brightness < 1
@@ -104,9 +168,10 @@ export function getAccessibleColor(bgColor = "", minContrast = 4.5) {
     brightness += 0.05;
     color = chroma(bgColor).brighten(brightness);
   }
+
   return {
     background: color.hex("rgb"),
-    foreground: foreground,
+    foreground,
   };
 }
 
@@ -120,7 +185,7 @@ export function getAccessibleColor(bgColor = "", minContrast = 4.5) {
  */
 export function generateColorMapDAX(
   data,
-  options = { name: "ColorMap", indent: "  " }
+  options = { name: "ColorMap", indent: "  " },
 ) {
   let daxCode = `${options.name} = DATATABLE(\n`;
   daxCode += `${options.indent}"Category", STRING,\n`;
@@ -155,7 +220,7 @@ export function generateColorMeasuresDAX(
   options = {
     name: "ColorMap",
     lookupTable: "TableName",
-  }
+  },
 ) {
   let measuresCode = "";
   for (const category of Object.keys(data)) {
@@ -167,10 +232,35 @@ export function generateColorMeasuresDAX(
 /**
  * Expands YAML color data by processing colors and generating variants.
  * @param {Object} data - The YAML data object to expand.
+ * @param {Object} settings - Contrast settings from YAML.
+ * @param {string} settings.textColor - The primary text color.
+ * @param {string} settings.altTextColor - The alternative text color.
+ * @param {number} settings.minContrast - The minimum contrast ratio.
  * @returns {Object} The expanded data object.
  */
-export function expandYAMLData(data) {
+export function expandYAMLData(data, settings = {}) {
+  const resolvedSettings = {
+    textColor: defaultTextColor,
+    altTextColor: defaultAltTextColor,
+    minContrast: 7,
+    ...settings,
+  };
+
+  const reservedKeys = new Set(["textColor", "altTextColor", "minContrast"]);
+  const expandedData = {};
+
   Object.entries(data).forEach(([category, items]) => {
+    if (
+      reservedKeys.has(category) ||
+      !items ||
+      typeof items !== "object" ||
+      Array.isArray(items)
+    ) {
+      return;
+    }
+
+    expandedData[category] = {};
+
     Object.entries(items).forEach(([name, color]) => {
       const baseColor = color;
       if (!color) color = "";
@@ -182,13 +272,25 @@ export function expandYAMLData(data) {
           color = "";
         }
       }
-      data[category][name] = {
+
+      expandedData[category][name] = {
         Base: baseColor,
-        Background: fitToBlackText(color).toUpperCase(),
-        AltBackground: getAccessibleColor(color).background.toUpperCase(),
-        AltForeground: getAccessibleColor(color).foreground.toUpperCase(),
+        Background: fitToBlackText(
+          color,
+          resolvedSettings.minContrast,
+          resolvedSettings.textColor,
+        ).toUpperCase(),
+        AltBackground: getAccessibleColor(
+          color,
+          resolvedSettings,
+        ).background.toUpperCase(),
+        AltForeground: getAccessibleColor(
+          color,
+          resolvedSettings,
+        ).foreground.toUpperCase(),
       };
     });
   });
-  return data;
+
+  return expandedData;
 }

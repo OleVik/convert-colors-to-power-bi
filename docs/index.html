@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
   <head>
     <meta charset="utf-8" />
@@ -77,10 +77,21 @@
         margin-bottom: 0;
         min-width: 0;
       }
+      details summary {
+        font-weight: bold;
+        font-size: 1.2rem;
+      }
       [editor],
       pre {
         border: var(--pico-border-width) solid var(--pico-primary-border);
         border-radius: 0;
+      }
+      pre.sample {
+        margin: 0;
+        padding: 0;
+      }
+      pre.sample > code {
+        display: block;
       }
       pre[class*="language-"],
       code {
@@ -159,12 +170,49 @@
           Editor to change colors. All changes are persisted in your browser's
           local storage, so they will be available when you return to the page.
         </p>
+        <p>
+          Define <code>textColor</code> and <code>altTextColor</code> to
+          override the default text colors of <code>#000000</code> and
+          <code>#FFFFFF</code>, respectively. <code>minContrast</code> sets the
+          minimum contrast ratio for the generated colors &ndash; a number
+          between 1 and 21, defaulting to 7.
+        </p>
+      </details>
+      <details>
+        <summary>Sample YAML-code</summary>
+        <pre
+          class="sample line-numbers language-yaml"
+        ><code class="language-yaml">textColor: "#000000"
+altTextColor: "#FFFFFF"
+minContrast: 7
+
+Sample:
+  Students: "#FFEBC0"
+  Employees: "#80C6FF"
+  Externals: "#FABBC3"
+  Faculties: "#498205"
+  Divisions: "#005E50"
+  Others: "#C3F8F9"
+
+Tests:
+  cyan: "#00ffFF"
+  Teal: "hsl(184 100% 60%)"
+  IndianRed: IndianRed
+  paleTurquoise: #AFEEEE
+  LightPink: "rgb(255, 182, 193)"
+  Bisque: "#FFE4C4BF"
+  LightSlateGray: 778899
+  blank: ""</code></pre>
       </details>
     </header>
     <main>
       <section>
         <strong>YAML Editor</strong>
         <pre editor>
+textColor: "#000000"
+altTextColor: "#FFFFFF"
+minContrast: 7
+
 Sample:
   Students: "#FFEBC0"
   Employees: "#80C6FF"
@@ -216,6 +264,8 @@ Tests:
     <script src="./lib/js-yaml.min.js"></script>
     <!-- https://cdnjs.cloudflare.com/ajax/libs/prism/1.30.0/prism.min.js -->
     <script src="./lib/prism.min.js"></script>
+    <!-- https://unpkg.com/prismjs@1.30.0/components/prism-yaml.min.js -->
+    <script src="https://unpkg.com/prismjs@1.30.0/components/prism-yaml.min.js"></script>
     <!-- https://unpkg.com/prismjs@1.30.0/plugins/line-numbers/prism-line-numbers.min.js -->
     <script src="./lib/prism-line-numbers.min.js"></script>
     <!-- https://unpkg.com/prismjs@1.30.0/components/prism-dax.min.js -->
@@ -247,17 +297,33 @@ Tests:
             uri: "file:///groups.yaml",
             schema: {
               type: "object",
+              properties: {
+                textColor: {
+                  type: "string",
+                  pattern: "^#([0-9A-Fa-f]{3}|[0-9A-Fa-f]{6})$",
+                  description: 'Primary text color, e.g. "#000000"',
+                },
+                altTextColor: {
+                  type: "string",
+                  pattern: "^#([0-9A-Fa-f]{3}|[0-9A-Fa-f]{6})$",
+                  description: 'Alternative text color, e.g. "#FFFFFF"',
+                },
+                minContrast: {
+                  type: "number",
+                  minimum: 1,
+                  description: "Minimum contrast ratio for generated colors.",
+                },
+              },
               patternProperties: {
-                ".*": {
+                "^(?!textColor$|altTextColor$|minContrast$).*$": {
                   type: "object",
                   additionalProperties: {
                     type: "string",
-                    pattern: "^#([0-9A-Fa-f]{3}|[0-9A-Fa-f]{6})$",
-                    description: 'Hex color, e.g. "#FFEBC0"',
+                    description: "Color value for the category item.",
                   },
                 },
               },
-              additionalProperties: { type: "object" },
+              additionalProperties: false,
             },
           },
         ],
@@ -285,7 +351,8 @@ Tests:
 
         localStorage.setItem(STORAGE_KEY, editor.getValue());
 
-        const colors = lib.expandYAMLData(yamlContent);
+        const settings = lib.parseYamlSettings(yamlContent);
+        const colors = lib.expandYAMLData(yamlContent, settings);
 
         document.querySelector("#table-dax code").textContent =
           lib.generateColorMapDAX(colors);
@@ -296,7 +363,7 @@ Tests:
         document.querySelector("#json code").textContent = JSON.stringify(
           colors,
           null,
-          2
+          2,
         );
         console.debug("Updated JSON");
 
@@ -309,7 +376,7 @@ Tests:
         lib.debounce(() => {
           if (isInitializing) return;
           handleContentChange();
-        }, 200)
+        }, 200),
       );
 
       editor.setValue(localStorage.getItem(STORAGE_KEY) ?? initialValue);

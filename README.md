@@ -63,6 +63,10 @@ CategoryName:
 
 AnotherCategory:
   ItemName: "hsl(184 100% 60%)"
+
+textColor: "#000000"
+altTextColor: "#FFFFFF"
+minContrast: 7
 ```
 
 Top-level keys become DAX category values; nested keys become item names. Color values can be any format listed above.
